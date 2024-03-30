@@ -1,0 +1,47 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+@section Head {
+    <script src='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css' rel='stylesheet' />
+
+    <link rel="stylesheet" href="~/css/Home/Index.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Home/Index-searchbar.css" asp-append-version="true" />
+}
+
+<!--body section start-->
+
+<div class="row">
+    <div class="col-12 position-relative">
+
+        <div id='map' class="row flex-grow-1" style='height: 80vh;'></div>
+
+        <div class="col-3 position-absolute top-0 start-0 mt-3 ms-3">
+            
+            <input type="text" class="form-control" id="explorer-search" placeholder="Search Foursquare Places" autocomplete="off"/>
+
+            <div id="explorer-dropdown">
+                <ul id="explorer-suggestions" class="list-group bg-white" style="overflow-y:scroll; height:60vh;"></ul>
+                <div id="explorer-error" class="explorer--error explorer--background-icon">
+                    Something went wrong. Please refresh and try again.
+                </div>
+                <div id="explorer-not-found" class="explorer--error explorer--background-icon"></div>
+                <div class="explorer--copyright">
+                    <img src="https://files.readme.io/7835fdb-powerByFSQ.svg" alt="powered by foursquare" />
+                </div>
+            </div>
+        </div>
+        <div id="side-panel" class="col-3 position-absolute top-0 start-0">
+            <h1 class="display-3"> AAAAAAHHHHH </h1>
+        </div>
+
+    </div>
+</div>
+
+<!--body section end-->
+
+@section Scripts {
+    <script src="~/js/Home/Index.js" asp-append-version="true"></script>
+    <script src="~/js/Home/Index-searchbar.js" asp-append-version="true"></script>
+}
