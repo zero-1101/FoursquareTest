@@ -25,7 +25,6 @@ function loadLocalMapSearchJs() {
     const sidePanel = document.getElementById('side-panel');
 
     dropDownField.style.display = 'none';
-    sidePanel.style.display = 'none';
 
     const onChangeAutoComplete = debounce(changeAutoComplete);
     inputField.addEventListener('input', onChangeAutoComplete);

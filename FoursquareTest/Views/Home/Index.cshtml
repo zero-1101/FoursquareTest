@@ -17,12 +17,13 @@
 
         <div id='map' class="row flex-grow-1" style='height: 80vh;'></div>
 
-        <div class="col-3 position-absolute top-0 start-0 mt-3 ms-3">
+        <div class="col-3 position-absolute top-0 start-0 mt-2 mx-2" style="z-index:1;">
 
             <form action="" method="post" class="search-form bg-white rounded-pill">
                 <input type="search" class="search-input form-control rounded-pill" id="explorer-search" placeholder="Search Foursquare Places" autocomplete="off" />
                 <button type="reset" class="clear-input-button" aria-label="Clear input" title="Clear input"><span aria-hidden="true">&times;</span></button>
-                <button type="button" class="search-span"></button>
+                <button type="button" class="search-span" data-bs-toggle="collapse" data-bs-target="#side-panel" aria-expanded="false" aria-controls="side-panel"></button>
+
             </form>
 
             <div id="explorer-dropdown">
@@ -36,9 +37,20 @@
                 </div>
             </div>
         </div>
-        <div id="side-panel" class="col-3 position-absolute top-0 start-0">
-            <h1 class="display-3"> AAAAAAHHHHH </h1>
+        <div id="side-panel" class="col-4 position-absolute top-0 start-0 collapse">
+            <div class="card card-body pt-4 me-3">
+                <br />
+                <h4>Resultados</h4>
+            </div>
         </div>
+
+
+
+
+
+
+
+
 
     </div>
 </div>
