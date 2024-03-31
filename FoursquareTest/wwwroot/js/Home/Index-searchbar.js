@@ -1,4 +1,16 @@
-﻿function loadLocalMapSearchJs() {
+﻿
+const ArtsAndEntertainmentId = '10000';
+const BusinessAndProfessionalServicesId = '11000';
+const CommunityAndGovernmentId = '12000';
+const DiningAndDrinkingId = '13000';
+const EventId = '14000';
+const HealthAndMedicineId = '15000';
+const LandmarksAndOutdoorsId = '16000';
+const RetailId = '17000';
+const SportsAndRecreationId = '18000';
+const TravelAndTransportationId = '19000';
+
+function loadLocalMapSearchJs() {
     //mapboxgl.accessToken = 'pk.eyJ1IjoiemVyby1tYXBib3giLCJhIjoiY2x1ZG5vbDBnMDNhZjJqbnR0NTFuajllMSJ9.3X0MCU_HDIT8hNYwn3jQDg';
     const fsqAPIToken = 'fsq3j4GItZknryfDOoi/xnVQXKrUtGvhgbybo+3Ym9fqKH4=';
     let userLat = 40.7128;
@@ -17,14 +29,26 @@
 
     const onChangeAutoComplete = debounce(changeAutoComplete);
     inputField.addEventListener('input', onChangeAutoComplete);
+
+    const toggleResetInputOnExplorerSearch = (e) => {
+        if (e.target.value && !inputField.classList.contains("clear-input--touched")) {
+            inputField.classList.add("clear-input--touched")
+        } else if (!e.target.value && inputField.classList.contains("clear-input--touched")) {
+            inputField.classList.remove("clear-input--touched")
+        }
+    }
+
+    inputField.addEventListener("input", toggleResetInputOnExplorerSearch);
+
     ulField.addEventListener('click', selectItem);
 
-    function success(pos) {
-        const { latitude, longitude } = pos.coords;
-        userLat = latitude;
-        userLng = longitude;
-        flyToLocation(userLat, userLng);
-    }
+
+    //function success(pos) {
+    //    const { latitude, longitude } = pos.coords;
+    //    userLat = latitude;
+    //    userLng = longitude;
+    //    flyToLocation(userLat, userLng);
+    //}
 
     function logError(err) {
         console.warn(`ERROR(${err.code}): ${err.message}`);
@@ -35,16 +59,6 @@
     //    timeout: 5000,
     //    maximumAge: 0,
     //});
-
-    //const map = new mapboxgl.Map({
-    //    container: 'map',
-    //    style: 'mapbox://styles/mapbox/light-v10',
-    //    center: [userLng, userLat],
-    //    zoom: 12,
-    //});
-
-    //map.addControl(new mapboxgl.GeolocateControl());
-    //map.addControl(new mapboxgl.NavigationControl());
 
     let currentMarker;
 
@@ -95,6 +109,39 @@
         }
     }
 
+    async function search(query) {
+        const { lng, lat } = map.getCenter();
+        userLat = lat;
+        userLng = lng;
+        try {
+            const searchParams = new URLSearchParams({
+                query,
+                types: 'place',
+                ll: `${userLat},${userLng}`,
+                radius: 50000,
+                session_token: sessionToken,
+                categories: `${ArtsAndEntertainmentId},${BusinessAndProfessionalServicesId},${CommunityAndGovernmentId},${DiningAndDrinkingId},
+                        ${EventId},${HealthAndMedicineId},${LandmarksAndOutdoorsId},${RetailId},${SportsAndRecreationId},${TravelAndTransportationId}`,
+                locale: 'es',
+                'explicit-lang': true
+            }).toString();
+            const searchResults = await fetch(
+                `https://api.foursquare.com/v3/places/search?${searchParams}`,
+                {
+                    method: 'get',
+                    headers: new Headers({
+                        Accept: 'application/json',
+                        Authorization: fsqAPIToken,
+                    }),
+                }
+            );
+            const data = await searchResults.json();
+            return data.results;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     async function autoComplete(query) {
         const { lng, lat } = map.getCenter();
         userLat = lat;
@@ -106,8 +153,6 @@
                 ll: `${userLat},${userLng}`,
                 radius: 50000,
                 session_token: sessionToken,
-                locale: 'es',
-                'explicit-lang': true
             }).toString();
             const searchResults = await fetch(
                 `https://api.foursquare.com/v3/autocomplete?${searchParams}`,
@@ -125,35 +170,6 @@
             throw error;
         }
     }
-
-    //async function autoComplete(query) {
-    //    const { lng, lat } = map.getCenter();
-    //    userLat = lat;
-    //    userLng = lng;
-    //    try {
-    //        const searchParams = new URLSearchParams({
-    //            query,
-    //            types: 'place',
-    //            ll: `${userLat},${userLng}`,
-    //            radius: 50000,
-    //            session_token: sessionToken,
-    //        }).toString();
-    //        const searchResults = await fetch(
-    //            `https://api.foursquare.com/v3/autocomplete?${searchParams}`,
-    //            {
-    //                method: 'get',
-    //                headers: new Headers({
-    //                    Accept: 'application/json',
-    //                    Authorization: fsqAPIToken,
-    //                }),
-    //            }
-    //        );
-    //        const data = await searchResults.json();
-    //        return data.results;
-    //    } catch (error) {
-    //        throw error;
-    //    }
-    //}
 
     function addItem(value) {
         const placeDetail = value[value.type];

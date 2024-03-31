@@ -18,16 +18,20 @@
         <div id='map' class="row flex-grow-1" style='height: 80vh;'></div>
 
         <div class="col-3 position-absolute top-0 start-0 mt-3 ms-3">
-            
-            <input type="text" class="form-control" id="explorer-search" placeholder="Search Foursquare Places" autocomplete="off"/>
+
+            <form action="" method="post" class="search-form bg-white rounded-pill">
+                <input type="search" class="search-input form-control rounded-pill" id="explorer-search" placeholder="Search Foursquare Places" autocomplete="off" />
+                <button type="reset" class="clear-input-button" aria-label="Clear input" title="Clear input"><span aria-hidden="true">&times;</span></button>
+                <button type="button" class="search-span"></button>
+            </form>
 
             <div id="explorer-dropdown">
-                <ul id="explorer-suggestions" class="list-group bg-white" style="overflow-y:scroll; height:60vh;"></ul>
-                <div id="explorer-error" class="explorer--error explorer--background-icon">
+                <ul id="explorer-suggestions" class="list-group bg-white" style="overflow-y:scroll; max-height:60vh;"></ul>
+                <div id="explorer-error" class="bg-white">
                     Something went wrong. Please refresh and try again.
                 </div>
-                <div id="explorer-not-found" class="explorer--error explorer--background-icon"></div>
-                <div class="explorer--copyright">
+                <div id="explorer-not-found" class="bg-white"></div>
+                <div class="bg-white">
                     <img src="https://files.readme.io/7835fdb-powerByFSQ.svg" alt="powered by foursquare" />
                 </div>
             </div>
