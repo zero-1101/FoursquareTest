@@ -38,6 +38,8 @@ function loadLocalMapSearchJs() {
     const bookmarkSidePanelElement = document.getElementById('bookmark-side-panel');
     let bookmarkSidePanelInstance = new bootstrap.Collapse(bookmarkSidePanelElement, { toggle: false });
 
+    const mapContainer = document.getElementById('map');
+
     suggerenceContainer.style.display = 'none';
     searchErrorField.style.display = 'none';
     searchSpinner.style.display = 'none';
@@ -68,6 +70,10 @@ function loadLocalMapSearchJs() {
     searchCloseButton.addEventListener('click', (event) => toggleCollapse(event, searchSidePanelInstance));
 
     bookmarkToggleButton.addEventListener('click', (event) => toggleCollapse(event, bookmarkSidePanelInstance));
+
+    mapContainer.addEventListener('click', createBookmark);
+
+    mapContainer.addEventListener('click', viewDetails);
 
     //function success(pos) {
     //    const { latitude, longitude } = pos.coords;
@@ -330,15 +336,13 @@ function loadLocalMapSearchJs() {
         if (photos.length && photos[0]) {
             photoUrl = `${photos[0].prefix}56${photos[0].suffix}`;
         }
-        //const popupHTML = `<div class="explorer--popup">
-        //    <image class="img-fluid img-thumbnail" src="${photoUrl}" alt="photo of ${name}"/>
-        //    <div class="explorer--popup-description">
-        //      <div class="fw-bold">${name}</div>
-        //      <div class="text-muted">${location.address}</div>
-        //    </div>
-        //    ${rating ? `<div class="explorer--popup-rating">${rating}</div>` : `<div />`}
-        //  </div>`;
-                        
+
+        const fsqId = placeDetail.fsq_id;
+        const { latitude, longitude } = placeDetail.geocodes.main;
+        const formattedAddress = location.formatted_address;
+
+        const dataObject = JSON.stringify({ latitude, longitude, name, formattedAddress, fsqId });
+
         const popupHTML =   `<div class="card">
                                 <div class="card-body">
                                     <div class="text-center mb-2">
@@ -347,16 +351,15 @@ function loadLocalMapSearchJs() {
                                     <h5 class="card-title">
                                         ${name}
                                     </h5>
-                                    <h6 class="card-subtitle mb-2 text-muted">${location.address}</h6>
+                                    <h6 class="card-subtitle mb-2 text-muted">${location.formatted_address}</h6>
                                     <h6 class="d-flex align-items-center fw-bold">${rating ?? ` - `} <span class="material-symbols-outlined text-warning rounded-circle shadow-sm mx-1 fs-4">stars</span></h5>
                                     
                                     <div class="btn-toolbar justify-content-between" role="toolbar" aria-label="Toolbar with button groups">
-                                        <button id="bookmark-toggle-button" class="btn btn-outline-primary shadow-sm py-0 d-flex align-items-center" type="button">
-                                            Detalles
-                                            <span class="material-symbols-outlined mx-1">visibility</span>
+                                        <button class="btn btn-outline-primary shadow-sm py-0 d-flex align-items-center" type="button" data-action='viewdetail' data-fsqid='${fsqId}'>
+                                            Detalles <span class="material-symbols-outlined mx-1 pe-none">visibility</span>
                                         </button>
-                                        <button id="bookmark-toggle-button" class="btn btn-outline-danger shadow-sm p-0" type="button">
-                                            <span class="material-symbols-outlined material-symbols-filled m-1">bookmark</span>
+                                        <button class="btn btn-outline-danger shadow-sm p-0" type="button" data-action="createbookmark" data-object='${dataObject}'>
+                                            <span class="material-symbols-outlined material-symbols-filled m-1 pe-none">bookmark</span>
                                         </button>
                                     </div>
                                 </div>
@@ -427,6 +430,30 @@ function loadLocalMapSearchJs() {
             }, timeout);
         };
     }
+
+    function createBookmark(event) {
+        event.preventDefault();
+
+        const target = event.target;
+
+        if (target.tagName == 'BUTTON' && target.dataset.action && target.dataset.action == 'createbookmark') {
+            const valueObject = JSON.parse(target.dataset.object);
+            console.log("funciono el evento createbookmark en el mapa");
+            console.log(target.dataset.object);
+        }
+    }
+
+    function viewDetails(event) {
+        event.preventDefault();
+
+        const target = event.target;
+
+        if (target.tagName == 'BUTTON' && target.dataset.action && target.dataset.action == 'viewdetail') {
+            console.log("funciono el evento viewdetail en el mapa");
+            console.log(target.dataset.fsqid);
+        }
+    }
+
 }
 
 loadLocalMapSearchJs();
