@@ -17,7 +17,7 @@ const map = new mapboxgl.Map({
     antialias: true
 });
 
-map.addControl(new mapboxgl.GeolocateControl());
+map.addControl(new mapboxgl.GeolocateControl(), 'bottom-right');
 map.addControl(new mapboxgl.ScaleControl({
     maxWidth: 80,
     unit: 'metric'
@@ -26,30 +26,7 @@ map.addControl(new mapboxgl.NavigationControl({
     showCompass: true,
     visualizePitch: true,
     showZoom: true,
-
-}));
-
-// create the popup
-const popup = new mapboxgl.Popup({ offset: 25 }).setText(
-    'Construction on the Washington Monument began in 1848.'
-);
-
-// create DOM element for the marker
-const el = document.createElement('div');
-el.id = 'marker';
-
-// create the marker
-new mapboxgl.Marker(el)
-    .setLngLat(monument)
-    .setPopup(popup) // sets a popup on this marker
-    .addTo(map);
-
-//// Set marker options.
-//const marker = new mapboxgl.Marker({
-//    color: "red",
-//    draggable: true
-//}).setLngLat([-77.0353, 38.8894])
-//    .addTo(map);
+}), 'bottom-right');
 
 map.on('style.load', () => {
 	map.setConfigProperty('basemap', 'lightPreset', 'day');

@@ -16,31 +16,58 @@ function loadLocalMapSearchJs() {
     let userLat = 40.7128;
     let userLng = -74.0060;
     let sessionToken = generateRandomSessionToken();
-    const inputField = document.getElementById('explorer-search');
-    const dropDownField = document.getElementById('explorer-dropdown');
-    const ulField = document.getElementById('explorer-suggestions');
-    const errorField = document.getElementById('explorer-error');
-    const notFoundField = document.getElementById('explorer-not-found');
+    const searchInput = document.getElementById('search-input');
+    const searchForm = document.getElementById('search-form');
+    const suggerenceContainer = document.getElementById('suggerence-container');
+    const suggerenceList = document.getElementById('suggerence-list');
+    const suggerenceErrorField = document.getElementById('suggerence-error');
+    const suggerenceNotFoundField = document.getElementById('suggerence-not-found');
 
-    const sidePanel = document.getElementById('side-panel');
+    const searchList = document.getElementById('search-list');
+    const searchErrorField = document.getElementById('search-error');
+    const searchNotFoundField = document.getElementById('search-not-found');
 
-    dropDownField.style.display = 'none';
+    const searchCloseButton = document.getElementById('search-close-button');
+    const searchSpinner = document.getElementById('search-spinner');
+
+    const searchSidePanelElement = document.getElementById('search-side-panel');
+    let searchSidePanelInstance = new bootstrap.Collapse(searchSidePanelElement, { toggle: false });
+
+    const bookmarkToggleButton = document.getElementById('bookmark-toggle-button');
+
+    const bookmarkSidePanelElement = document.getElementById('bookmark-side-panel');
+    let bookmarkSidePanelInstance = new bootstrap.Collapse(bookmarkSidePanelElement, { toggle: false });
+
+    suggerenceContainer.style.display = 'none';
+    searchErrorField.style.display = 'none';
+    searchSpinner.style.display = 'none';
 
     const onChangeAutoComplete = debounce(changeAutoComplete);
-    inputField.addEventListener('input', onChangeAutoComplete);
+    searchInput.addEventListener('input', onChangeAutoComplete);
 
-    const toggleResetInputOnExplorerSearch = (e) => {
-        if (e.target.value && !inputField.classList.contains("clear-input--touched")) {
-            inputField.classList.add("clear-input--touched")
-        } else if (!e.target.value && inputField.classList.contains("clear-input--touched")) {
-            inputField.classList.remove("clear-input--touched")
+    const toggleSuggerenceResetButton = (e) => {
+        if (e.target.value && !searchInput.classList.contains("clear-input--touched")) {
+            searchInput.classList.add("clear-input--touched")
+        } else if (!e.target.value && searchInput.classList.contains("clear-input--touched")) {
+            searchInput.classList.remove("clear-input--touched")
         }
     }
 
-    inputField.addEventListener("input", toggleResetInputOnExplorerSearch);
+    searchInput.addEventListener("input", toggleSuggerenceResetButton);
 
-    ulField.addEventListener('click', selectItem);
+    suggerenceList.addEventListener('click', selectSuggerenceItem);
 
+    const onGetSearchResults = (event) => {
+        searchSpinner.style.display = 'block';
+        debounce(getSearchResults(event));
+    };
+    searchForm.addEventListener('submit', onGetSearchResults);
+
+    searchList.addEventListener('click', selectSearchItem);
+
+    searchCloseButton.addEventListener('click', (event) => toggleCollapse(event, searchSidePanelInstance));
+
+    bookmarkToggleButton.addEventListener('click', (event) => toggleCollapse(event, bookmarkSidePanelInstance));
 
     //function success(pos) {
     //    const { latitude, longitude } = pos.coords;
@@ -75,36 +102,53 @@ function loadLocalMapSearchJs() {
         return result;
     }
 
-    let isFetching = false;
-    async function changeAutoComplete({ target }) {
-        const { value: inputSearch = '' } = target;
-        ulField.innerHTML = '';
-        notFoundField.style.display = 'none';
-        errorField.style.display = 'none';
-        if (inputSearch.length && !isFetching) {
+    function toggleCollapse(event, collapseInstance) {
+        collapseInstance.toggle();
+    }
+
+    let isFetchingSearch = false;
+    async function getSearchResults(event) {
+        event.preventDefault();
+
+        bookmarkSidePanelInstance.hide();
+
+        searchList.innerHTML = '';
+        searchNotFoundField.style.display = 'none';
+        searchErrorField.style.display = 'none';
+
+        inputSearch = searchInput.value;
+
+        if (inputSearch.length && !isFetchingSearch) {
             try {
-                isFetching = true;
-                const results = await autoComplete(inputSearch);
-                if (results && results.length) {
-                    results.forEach((value) => {
-                        addItem(value);
+                isFetchingSearch = true;
+                const searchResults = await search(inputSearch);
+                if (searchResults && searchResults.length) {
+                    searchResults.forEach((value) => {
+                        addSearchResultItem(value);
                     });
                 } else {
-                    notFoundField.innerHTML = `Foursquare can't
+                    searchNotFoundField.innerHTML = `Foursquare can't
                 find ${inputSearch}. Make sure your search is spelled correctly.  
                 <a href="https://foursquare.com/add-place?ll=${userLat}%2C${userLng}&venuename=${inputSearch}"
                   target="_blank" rel="noopener noreferrer">Don't see the place you're looking for?</a>.`;
-                    notFoundField.style.display = 'block';
+                    searchNotFoundField.style.display = 'block';
+                    suggerenceContainer.style.display = 'none';
                 }
             } catch (err) {
-                errorField.style.display = 'block';
-                logError(err);
+                searchSidePanelInstance.show();
+                searchErrorField.style.display = 'block';
+                suggerenceContainer.style.display = 'none';
+                logError();
             } finally {
-                isFetching = false;
-                dropDownField.style.display = 'block';
+                isFetchingSearch = false;
+                searchSidePanelInstance.show();
+                suggerenceContainer.style.display = 'none';
+                searchSpinner.style.display = 'none';
             }
         } else {
-            dropDownField.style.display = 'none';
+            searchSidePanelInstance.hide();
+            suggerenceContainer.style.display = 'none';
+            searchSpinner.style.display = 'none';
         }
     }
 
@@ -119,8 +163,6 @@ function loadLocalMapSearchJs() {
                 ll: `${userLat},${userLng}`,
                 radius: 50000,
                 session_token: sessionToken,
-                categories: `${ArtsAndEntertainmentId},${BusinessAndProfessionalServicesId},${CommunityAndGovernmentId},${DiningAndDrinkingId},
-                        ${EventId},${HealthAndMedicineId},${LandmarksAndOutdoorsId},${RetailId},${SportsAndRecreationId},${TravelAndTransportationId}`,
                 locale: 'es',
                 'explicit-lang': true
             }).toString();
@@ -138,6 +180,66 @@ function loadLocalMapSearchJs() {
             return data.results;
         } catch (error) {
             throw error;
+        }
+    }
+
+    function addSearchResultItem(value) {
+        const placeDetail = value;
+        if (!placeDetail || !placeDetail.geocodes || !placeDetail.geocodes.main) return;
+        const { latitude, longitude } = placeDetail.geocodes.main;
+        const fsqId = placeDetail.fsq_id;
+        const dataObject = JSON.stringify({ latitude, longitude, fsqId });
+        searchList.innerHTML +=
+            `<li class="list-group search-suggestion p-3" data-object='${dataObject}'>
+            <div class="pe-none">${value.name}</div>
+            <div class="text-muted pe-none">${value.location.formatted_address}</div>
+          </li>`;
+    }
+
+    async function selectSearchItem({ target }) {
+        if (target.tagName === 'LI') {
+            const valueObject = JSON.parse(target.dataset.object);
+            const { latitude, longitude, fsqId } = valueObject;
+            const placeDetail = await fetchPlacesDetails(fsqId);
+            addMarkerAndPopup(latitude, longitude, placeDetail);
+            flyToLocation(latitude, longitude);
+
+            // generate new session token after a complete search
+            sessionToken = generateRandomSessionToken();
+        }
+    }
+
+    let isFetchingSuggerences = false;
+    async function changeAutoComplete({ target }) {
+        const { value: inputSearch = '' } = target;
+        suggerenceList.innerHTML = '';
+        suggerenceNotFoundField.style.display = 'none';
+        suggerenceErrorField.style.display = 'none';
+        if (inputSearch.length && !isFetchingSuggerences) {
+            try {
+                isFetchingSuggerences = true;
+                const results = await autoComplete(inputSearch);
+                if (results && results.length) {
+                    results.forEach((value) => {
+                        addSuggerenceItem(value);
+                    });
+                } else {
+                    suggerenceNotFoundField.innerHTML = `Foursquare can't
+                find ${inputSearch}. Make sure your search is spelled correctly.  
+                <a href="https://foursquare.com/add-place?ll=${userLat}%2C${userLng}&venuename=${inputSearch}"
+                  target="_blank" rel="noopener noreferrer">Don't see the place you're looking for?</a>.`;
+                    suggerenceNotFoundField.style.display = 'block';
+                }
+            } catch (err) {
+                suggerenceErrorField.style.display = 'block';
+                logError(err);
+            } finally {
+                isFetchingSuggerences = false;
+                suggerenceContainer.style.display = 'block';
+            }
+        } else {
+            suggerenceContainer.style.display = 'none';
+            searchSidePanelInstance.hide();
         }
     }
 
@@ -170,20 +272,20 @@ function loadLocalMapSearchJs() {
         }
     }
 
-    function addItem(value) {
+    function addSuggerenceItem(value) {
         const placeDetail = value[value.type];
         if (!placeDetail || !placeDetail.geocodes || !placeDetail.geocodes.main) return;
         const { latitude, longitude } = placeDetail.geocodes.main;
         const fsqId = placeDetail.fsq_id;
         const dataObject = JSON.stringify({ latitude, longitude, fsqId });
-        ulField.innerHTML +=
+        suggerenceList.innerHTML +=
             `<li class="list-group search-suggestion p-3" data-object='${dataObject}'>
             <div class="pe-none">${highlightedNameElement(value.text)}</div>
             <div class="text-muted pe-none">${value.text.secondary}</div>
           </li>`;
     }
 
-    async function selectItem({ target }) {
+    async function selectSuggerenceItem({ target }) {
         if (target.tagName === 'LI') {
             const valueObject = JSON.parse(target.dataset.object);
             const { latitude, longitude, fsqId } = valueObject;
@@ -194,8 +296,8 @@ function loadLocalMapSearchJs() {
             // generate new session token after a complete search
             sessionToken = generateRandomSessionToken();
             const name = target.dataset.name;
-            inputField.value = target.children[0].textContent;
-            dropDownField.style.display = 'none';
+            searchInput.value = target.children[0].textContent;
+            suggerenceContainer.style.display = 'none';
         }
     }
 
@@ -228,14 +330,37 @@ function loadLocalMapSearchJs() {
         if (photos.length && photos[0]) {
             photoUrl = `${photos[0].prefix}56${photos[0].suffix}`;
         }
-        const popupHTML = `<div class="explorer--popup">
-            <image class="img-fluid img-thumbnail" src="${photoUrl}" alt="photo of ${name}"/>
-            <div class="explorer--popup-description">
-              <div class="fw-bold">${name}</div>
-              <div class="text-muted">${location.address}</div>
-            </div>
-            ${rating ? `<div class="explorer--popup-rating">${rating}</div>` : `<div />`}
-          </div>`;
+        //const popupHTML = `<div class="explorer--popup">
+        //    <image class="img-fluid img-thumbnail" src="${photoUrl}" alt="photo of ${name}"/>
+        //    <div class="explorer--popup-description">
+        //      <div class="fw-bold">${name}</div>
+        //      <div class="text-muted">${location.address}</div>
+        //    </div>
+        //    ${rating ? `<div class="explorer--popup-rating">${rating}</div>` : `<div />`}
+        //  </div>`;
+                        
+        const popupHTML =   `<div class="card">
+                                <div class="card-body">
+                                    <div class="text-center mb-2">
+                                        <img class="rounded shadow-sm" height="70" src="${photoUrl}" alt="photo of ${name}">
+                                    </div>
+                                    <h5 class="card-title">
+                                        ${name}
+                                    </h5>
+                                    <h6 class="card-subtitle mb-2 text-muted">${location.address}</h6>
+                                    <h6 class="d-flex align-items-center fw-bold">${rating ?? ` - `} <span class="material-symbols-outlined text-warning rounded-circle shadow-sm mx-1 fs-4">stars</span></h5>
+                                    
+                                    <div class="btn-toolbar justify-content-between" role="toolbar" aria-label="Toolbar with button groups">
+                                        <button id="bookmark-toggle-button" class="btn btn-outline-primary shadow-sm py-0 d-flex align-items-center" type="button">
+                                            Detalles
+                                            <span class="material-symbols-outlined mx-1">visibility</span>
+                                        </button>
+                                        <button id="bookmark-toggle-button" class="btn btn-outline-danger shadow-sm p-0" type="button">
+                                            <span class="material-symbols-outlined material-symbols-filled m-1">bookmark</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>`;
 
         const markerHeight = 35;
         const markerRadius = 14;

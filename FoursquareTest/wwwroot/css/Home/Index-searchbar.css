@@ -1,4 +1,30 @@
 
+.z-index-4 {
+    z-index: 4;
+}
+
+.z-index-5 {
+    z-index: 5;
+}
+
+.rounded-search {
+    border-radius: 1.4rem !important;
+}
+
+.rounded-search-top {
+    border-top-left-radius: 1.4rem !important;
+    border-top-right-radius: 1.4rem !important;
+}
+
+.saved-search-style {
+    border-top-right-radius: 0.5rem !important;
+    border-bottom-right-radius: 1rem !important;
+}
+
+.thin-scrollbar {
+    scrollbar-width: thin;
+}
+
 .search-suggestion:hover {
     background-color: #F1F1F1;
     cursor: pointer;
@@ -9,10 +35,7 @@
     pointer-events: none;
 }
 
-.search-form {
-    display: flex;
-}
-
+/*the parent element needs to be display:flex*/
 .search-span {
     text-indent: -999px;
     overflow: hidden;
@@ -30,42 +53,3 @@
         opacity: 1;
     }
 
-    .explorer-search:focus, .search-span:focus {
-        box-shadow: 0 0 3px 0 #1183d6;
-        border-color: #1183d6;
-        outline: none;
-    }
-
-.clear-input-button {
-    /* button position */
-    position: absolute;
-    right: 44px;
-    top: 8px;
-    bottom: 0;
-    /* button appearane */
-    justify-content: center;
-    align-items: center;
-    width: 22px;
-    height: 22px;
-    appearance: none;
-    border: none;
-    border-radius: 50%;
-    background: gray;
-    margin: 0;
-    padding: 4px;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-    /* hide the button initially */
-    display: none;
-}
-
-    .clear-input-button:hover {
-        background: darkgray;
-    }
-
-.clear-input--touched:focus + .clear-input-button,
-.clear-input--touched:hover + .clear-input-button,
-.clear-input--touched + .clear-input-button:hover {
-    display: inline-flex;
-}
