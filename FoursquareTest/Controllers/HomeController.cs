@@ -53,7 +53,7 @@ namespace FoursquareTest.Controllers
                 }
 
                 var result = await _applicationDbContext.Bookmarks.Where(b => b.ApplicationUserId == user.Id)
-                    .OrderByDescending(b => b.Id)
+                    .OrderBy(b => b.Id)
                     .Select(b => new BookmarkDetail(b.Id, b.latitude, b.longitude, b.name, b.formatted_address, b.fsqId))
                     .ToListAsync();
                 return Ok(Json(new { isSuccess = true, message = "Ok", result = result }));
