@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System.Diagnostics;
+using System.Xml.Linq;
 
 namespace FoursquareTest.Controllers
 {
@@ -40,22 +42,39 @@ namespace FoursquareTest.Controllers
         [HttpGet]
         public async Task<IActionResult> GetBookmarksByUser()
         {
-            var user = await _userManager.GetUserAsync(User);
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
 
-            if (user == null) { return Forbid(); }
+                if (user == null)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden,
+                            Json(new { isSuccess = false, message = "Forbidden", result = (object?)null }));
+                }
 
-            var result = await _applicationDbContext.Bookmarks.Where(b => b.ApplicationUserId == user.Id).ToListAsync();
-            return Json(result);
+                var result = await _applicationDbContext.Bookmarks.Where(b => b.ApplicationUserId == user.Id)
+                    .OrderByDescending(b => b.Id)
+                    .Select(b => new BookmarkDetail(b.Id, b.latitude, b.longitude, b.name, b.formatted_address, b.fsqId))
+                    .ToListAsync();
+                return Ok(Json(new { isSuccess = true, message = "Ok", result = result }));
+            }
+            catch (Exception e)
+            {
+                return Ok(Json(new { isSuccess = false, message = "Error", result = (object?)null }));
+            }
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateBookmark(CreateBookmark createBookmark)
+        public async Task<IActionResult> CreateBookmark([FromBody] CreateBookmark createBookmark)
         {
             try
             {
                 var user = await _userManager.GetUserAsync(User);
 
-                if (user == null) { return Forbid(); }
+                if (user == null) {
+                    return StatusCode(StatusCodes.Status403Forbidden,
+                        Json(new { isSuccess = false, message = "Forbidden", result = (object?)null }));
+                }
 
                 Bookmark newBookmark = new Bookmark
                 {
@@ -80,11 +99,40 @@ namespace FoursquareTest.Controllers
                     fsqId: result.Entity.fsqId
                 );
 
-                return Json(new { isSuccess = true, message = "Ok", result = bookmarkDetail });
+                return Ok(Json(new { isSuccess = true, message = "Ok", result = bookmarkDetail }));
             }
             catch (Exception)
             {
-                return Json(new { isSuccess = false, message = "Error", result = (object?) null });
+                return Ok(Json(new { isSuccess = false, message = "Error", result = (object?)null }));
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteBookmark(int bookmarkId)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+
+                if (user == null) { 
+                    return StatusCode(StatusCodes.Status403Forbidden,
+                        new { isSuccess = false, message = "Forbidden", result = (object?)null }); 
+                }
+
+                Bookmark? bookmarkDelete = await _applicationDbContext.Bookmarks.FindAsync(bookmarkId);
+
+                if (bookmarkDelete is null){ 
+                    return NotFound(new { isSuccess = false, message = "Not Found", result = (object?)null });
+                }
+
+                var result = _applicationDbContext.Bookmarks.Remove(bookmarkDelete);
+                await _applicationDbContext.SaveChangesAsync();
+
+                return Json(new { isSuccess = true, message = "Ok", result = (object?)null });
+            }
+            catch (Exception)
+            {
+                return Json(new { isSuccess = false, message = "Error", result = (object?)null });
             }
         }
 

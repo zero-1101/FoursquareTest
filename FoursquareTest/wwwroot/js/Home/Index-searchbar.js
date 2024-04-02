@@ -1,16 +1,13 @@
 ﻿
-const ArtsAndEntertainmentId = '10000';
-const BusinessAndProfessionalServicesId = '11000';
-const CommunityAndGovernmentId = '12000';
-const DiningAndDrinkingId = '13000';
-const EventId = '14000';
-const HealthAndMedicineId = '15000';
-const LandmarksAndOutdoorsId = '16000';
-const RetailId = '17000';
-const SportsAndRecreationId = '18000';
-const TravelAndTransportationId = '19000';
+async function loadLocalMapSearchJs() {
 
-function loadLocalMapSearchJs() {
+    const base_url = window.location.origin;
+    const get_bookmarks_by_user_url = `${base_url}/Home/GetBookmarksByUser`;
+    const create_bookmark_url = `${base_url}/Home/CreateBookmark`;
+    const delete_bookmark_url = `${base_url}/Home/DeleteBookmark`;
+
+    let bookmarkArray = await GetBookmarksByUser();
+
     //mapboxgl.accessToken = 'pk.eyJ1IjoiemVyby1tYXBib3giLCJhIjoiY2x1ZG5vbDBnMDNhZjJqbnR0NTFuajllMSJ9.3X0MCU_HDIT8hNYwn3jQDg';
     const fsqAPIToken = 'fsq3j4GItZknryfDOoi/xnVQXKrUtGvhgbybo+3Ym9fqKH4=';
     let userLat = 40.7128;
@@ -38,7 +35,11 @@ function loadLocalMapSearchJs() {
     const bookmarkSidePanelElement = document.getElementById('bookmark-side-panel');
     let bookmarkSidePanelInstance = new bootstrap.Collapse(bookmarkSidePanelElement, { toggle: false });
 
+    let bookmarkList = document.getElementById('bookmark-list');
+
     const mapContainer = document.getElementById('map');
+
+    await setBookmarkList();
 
     suggerenceContainer.style.display = 'none';
     searchErrorField.style.display = 'none';
@@ -71,7 +72,11 @@ function loadLocalMapSearchJs() {
 
     bookmarkToggleButton.addEventListener('click', (event) => toggleCollapse(event, bookmarkSidePanelInstance));
 
-    mapContainer.addEventListener('click', createBookmark);
+    searchList.addEventListener('click', CreateOrDeleteBookmark);
+
+    bookmarkList.addEventListener('click', DeleteBookmarkAndRemoveFromList);
+
+    mapContainer.addEventListener('click', CreateOrDeleteBookmark);
 
     mapContainer.addEventListener('click', viewDetails);
 
@@ -192,13 +197,22 @@ function loadLocalMapSearchJs() {
     function addSearchResultItem(value) {
         const placeDetail = value;
         if (!placeDetail || !placeDetail.geocodes || !placeDetail.geocodes.main) return;
-        const { latitude, longitude } = placeDetail.geocodes.main;
+
+        const { location = {}, name = '', photos = [], rating } = placeDetail;
+
         const fsqId = placeDetail.fsq_id;
-        const dataObject = JSON.stringify({ latitude, longitude, fsqId });
+        const { latitude, longitude } = placeDetail.geocodes.main;
+        const formattedAddress = location.formatted_address;
+
+        const dataObject = JSON.stringify({ latitude, longitude, name, "formatted_address": formattedAddress, fsqId });
+
         searchList.innerHTML +=
             `<li class="list-group search-suggestion p-3" data-object='${dataObject}'>
             <div class="pe-none">${value.name}</div>
             <div class="text-muted pe-none">${value.location.formatted_address}</div>
+            <button class="btn btn-light border-danger rounded-circle text-danger shadow-sm p-0 ms-auto" type="button" data-action="createbookmark" data-object='${dataObject}'>
+                <span class="material-symbols-outlined material-symbols-filled m-1 pe-none">bookmark</span>
+            </button>
           </li>`;
     }
 
@@ -341,7 +355,7 @@ function loadLocalMapSearchJs() {
         const { latitude, longitude } = placeDetail.geocodes.main;
         const formattedAddress = location.formatted_address;
 
-        const dataObject = JSON.stringify({ latitude, longitude, name, formattedAddress, fsqId });
+        const dataObject = JSON.stringify({ latitude, longitude, name, "formatted_address": formattedAddress, fsqId });
 
         const popupHTML =   `<div class="card">
                                 <div class="card-body">
@@ -358,7 +372,7 @@ function loadLocalMapSearchJs() {
                                         <button class="btn btn-outline-primary shadow-sm py-0 d-flex align-items-center" type="button" data-action='viewdetail' data-fsqid='${fsqId}'>
                                             Detalles <span class="material-symbols-outlined mx-1 pe-none">visibility</span>
                                         </button>
-                                        <button class="btn btn-outline-danger shadow-sm p-0" type="button" data-action="createbookmark" data-object='${dataObject}'>
+                                        <button class="btn btn-light border-danger rounded-circle text-danger shadow-sm p-0" type="button" data-action="createbookmark" data-object='${dataObject}'>
                                             <span class="material-symbols-outlined material-symbols-filled m-1 pe-none">bookmark</span>
                                         </button>
                                     </div>
@@ -388,7 +402,7 @@ function loadLocalMapSearchJs() {
     function addMarkerAndPopup(lat, lng, placeDetail) {
         if (currentMarker) currentMarker.remove();
         currentMarker = new mapboxgl.Marker({
-            color: '#3333FF',
+            color: 'red',
         })
             .setLngLat([lng, lat])
             .setPopup(createPopup(placeDetail))
@@ -431,16 +445,160 @@ function loadLocalMapSearchJs() {
         };
     }
 
-    function createBookmark(event) {
+    async function GetBookmarksByUser() {
+        try {
+            const results = await fetch(
+                get_bookmarks_by_user_url,
+                {
+                    method: 'get',
+                    headers: new Headers({
+                        'Accept': 'application/json',
+                        //'Content-Type': 'application/json'
+                    }),
+                }
+            );
+            const data = await results.json();
+
+            let bookmarksList = [];
+
+            if (data.value && data.value.isSuccess == true) {
+                bookmarksList = data.value.result;
+            }
+
+            return bookmarksList;
+
+        } catch (err) {
+            logError(err);
+        }
+    }
+
+    async function setBookmarkList() {
+        if (bookmarkArray && bookmarkArray.length) {
+            bookmarkArray.forEach((value) => {
+                addBookmarkItem(value);
+            });
+        }
+    }
+    function addBookmarkItem(value) {
+        const dataObject = JSON.stringify(value);
+
+        bookmarkList.innerHTML +=
+            `<li class="list-group search-suggestion p-3" data-object='${dataObject}'>
+            <div class="pe-none">${value.name}</div>
+            <div class="text-muted pe-none">${value.formatted_address}</div>
+            <button class="btn btn-light border-danger rounded-circle text-danger shadow-sm p-0 ms-auto" type="button" data-action="deletebookmark" data-object='${dataObject}'>
+                <span class="material-symbols-outlined material-symbols-filled m-1 pe-none">delete_forever</span>
+            </button>
+          </li>`;
+    }
+
+    async function DeleteBookmarkAndRemoveFromList(event) {
+        event.preventDefault();
+
+        if (target.tagName == 'BUTTON' && target.dataset.action && target.dataset.action == 'deletebookmark') {
+            const data = await deleteBookmark(target);
+            if (data.value && data.value.isSuccess == true) {
+                //changeBookmarkButtonToCreateAction(target);
+                //TODO: remove from list
+            }
+        }
+    }
+
+    async function CreateOrDeleteBookmark(event) {
         event.preventDefault();
 
         const target = event.target;
 
         if (target.tagName == 'BUTTON' && target.dataset.action && target.dataset.action == 'createbookmark') {
-            const valueObject = JSON.parse(target.dataset.object);
-            console.log("funciono el evento createbookmark en el mapa");
-            console.log(target.dataset.object);
+            const data = await createBookmark(target);
+            if (data.value && data.value.isSuccess == true) {
+                const newBookmarkObject = JSON.parse(data.value.result);
+                target.dataset.object = JSON.stringify(newBookmarkObject);
+                changeBookmarkButtonToDeleteAction(target);
+            }
+
+        } else if (target.tagName == 'BUTTON' && target.dataset.action && target.dataset.action == 'deletebookmark') {
+            const data = await deleteBookmark(target);
+            if (data.value && data.value.isSuccess == true) {
+                changeBookmarkButtonToCreateAction(target);
+            }
         }
+        else {
+            return;
+        }
+    }
+
+    async function createBookmark(bookmarkButton) {
+
+        console.log("funciono el evento createbookmark en el mapa");
+        console.log(bookmarkButton.dataset.object);
+        console.log("llamando a la api para ejecutar el create");
+
+        const newBookmarkJson = bookmarkButton.dataset.object;
+
+        try {
+            const results = await fetch(
+                create_bookmark_url,
+                {
+                    method: 'post',
+                    headers: new Headers({
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                        /*Authorization: fsqAPIToken,*/
+                    }),
+                    body: newBookmarkJson,
+                }
+            );
+            const data = await results.json();
+            return data;
+
+        } catch (err) {
+            logError(err);
+        }
+    }
+
+    async function deleteBookmark(bookmarkButton) {
+        const valueObject = JSON.parse(bookmarkButton.dataset.object);
+        console.log("funciono el evento deletebookmark en el mapa");
+        
+        console.log(bookmarkButton.dataset.object);
+        console.log("llamando a la api para ejecutar el create");
+
+        const deleteBookmark = bookmarkButton.dataset.object;
+
+        try {
+            const results = await fetch(
+                delete_bookmark_url,
+                {
+                    method: 'post',
+                    headers: new Headers({
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                        /*Authorization: fsqAPIToken,*/
+                    }),
+                    body: deleteBookmark.Id,
+                }
+            );
+            const data = await results.json();
+            return data;
+
+        } catch (err) {
+            logError(err);
+        }
+    }
+
+    function changeBookmarkButtonToCreateAction(bookmarkButton) {
+        bookmarkButton.dataset.action = 'createbookmark';
+
+        bookmarkSpanIcon = bookmarkButton.querySelector('span.material-symbols-outlined');
+        bookmarkSpanIcon.classList.add('material-symbols-filled');
+    }
+
+    function changeBookmarkButtonToDeleteAction(bookmarkButton) {
+        bookmarkButton.dataset.action = 'deletebookmark';
+
+        bookmarkSpanIcon = bookmarkButton.querySelector('span.material-symbols-outlined');
+        bookmarkSpanIcon.classList.remove('material-symbols-filled');
     }
 
     function viewDetails(event) {
