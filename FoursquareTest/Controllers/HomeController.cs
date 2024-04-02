@@ -60,7 +60,8 @@ namespace FoursquareTest.Controllers
             }
             catch (Exception e)
             {
-                return Ok(Json(new { isSuccess = false, message = "Error", result = (object?)null }));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    Json(new { isSuccess = false, message = "Error", result = (object?)null }));
             }
         }
 
@@ -103,12 +104,13 @@ namespace FoursquareTest.Controllers
             }
             catch (Exception)
             {
-                return Ok(Json(new { isSuccess = false, message = "Error", result = (object?)null }));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    Json(new { isSuccess = false, message = "Error", result = (object?)null }));
             }
         }
 
         [HttpPost]
-        public async Task<IActionResult> DeleteBookmark(int bookmarkId)
+        public async Task<IActionResult> DeleteBookmark([FromBody] int bookmarkId)
         {
             try
             {
@@ -116,23 +118,24 @@ namespace FoursquareTest.Controllers
 
                 if (user == null) { 
                     return StatusCode(StatusCodes.Status403Forbidden,
-                        new { isSuccess = false, message = "Forbidden", result = (object?)null }); 
+                        Json( new { isSuccess = false, message = "Forbidden", result = (object?)null }) ); 
                 }
 
                 Bookmark? bookmarkDelete = await _applicationDbContext.Bookmarks.FindAsync(bookmarkId);
 
                 if (bookmarkDelete is null){ 
-                    return NotFound(new { isSuccess = false, message = "Not Found", result = (object?)null });
+                    return NotFound(Json( new { isSuccess = false, message = "Not Found", result = (object?)null }) );
                 }
 
                 var result = _applicationDbContext.Bookmarks.Remove(bookmarkDelete);
                 await _applicationDbContext.SaveChangesAsync();
 
-                return Json(new { isSuccess = true, message = "Ok", result = (object?)null });
+                return Ok( Json(new { isSuccess = true, message = "Ok", result = (object?)null }) );
             }
             catch (Exception)
             {
-                return Json(new { isSuccess = false, message = "Error", result = (object?)null });
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    Json(new { isSuccess = false, message = "Error", result = (object?)null }));
             }
         }
 

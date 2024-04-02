@@ -204,14 +204,27 @@ async function loadLocalMapSearchJs() {
         const { latitude, longitude } = placeDetail.geocodes.main;
         const formattedAddress = location.formatted_address;
 
-        const dataObject = JSON.stringify({ latitude, longitude, name, "formatted_address": formattedAddress, fsqId });
+        const bookmark = bookmarkArray.find(bmrk => bmrk.fsqId == fsqId);
+
+        let createClass = '';
+        let actionValue = 'createbookmark';
+
+        let dataObject = JSON.stringify({ latitude, longitude, name, "formatted_address": formattedAddress, fsqId });
+
+        if (bookmark) {
+            createClass = 'material-symbols-filled';
+            actionValue = 'deletebookmark';
+            dataObject = JSON.stringify(bookmark);
+        }
+
+
 
         searchList.innerHTML +=
             `<li class="list-group search-suggestion p-3" data-object='${dataObject}'>
             <div class="pe-none">${value.name}</div>
             <div class="text-muted pe-none">${value.location.formatted_address}</div>
-            <button class="btn btn-light border-danger rounded-circle text-danger shadow-sm p-0 ms-auto" type="button" data-action="createbookmark" data-object='${dataObject}'>
-                <span class="material-symbols-outlined material-symbols-filled m-1 pe-none">bookmark</span>
+            <button class="btn btn-light border-danger rounded-circle text-danger shadow-sm p-0 ms-auto" type="button" data-action="${actionValue}" data-object='${dataObject}'>
+                <span class="material-symbols-outlined ${createClass} m-1 pe-none">bookmark</span>
             </button>
           </li>`;
     }
@@ -355,7 +368,18 @@ async function loadLocalMapSearchJs() {
         const { latitude, longitude } = placeDetail.geocodes.main;
         const formattedAddress = location.formatted_address;
 
-        const dataObject = JSON.stringify({ latitude, longitude, name, "formatted_address": formattedAddress, fsqId });
+        const bookmark = bookmarkArray.find(bmrk => bmrk.fsqId == fsqId);
+
+        let createClass = '';
+        let actionValue = 'createbookmark';
+
+        let dataObject = JSON.stringify({ latitude, longitude, name, "formatted_address": formattedAddress, fsqId });
+
+        if (bookmark) {
+            createClass = 'material-symbols-filled';
+            actionValue = 'deletebookmark';
+            dataObject = JSON.stringify(bookmark);
+        }
 
         const popupHTML =   `<div class="card">
                                 <div class="card-body">
@@ -372,8 +396,8 @@ async function loadLocalMapSearchJs() {
                                         <button class="btn btn-outline-primary shadow-sm py-0 d-flex align-items-center" type="button" data-action='viewdetail' data-fsqid='${fsqId}'>
                                             Detalles <span class="material-symbols-outlined mx-1 pe-none">visibility</span>
                                         </button>
-                                        <button class="btn btn-light border-danger rounded-circle text-danger shadow-sm p-0" type="button" data-action="createbookmark" data-object='${dataObject}'>
-                                            <span class="material-symbols-outlined material-symbols-filled m-1 pe-none">bookmark</span>
+                                        <button class="btn btn-light border-danger rounded-circle text-danger shadow-sm p-0" type="button" data-action="${actionValue}" data-object='${dataObject}'>
+                                            <span class="material-symbols-outlined ${createClass} m-1 pe-none">bookmark</span>
                                         </button>
                                     </div>
                                 </div>
@@ -475,31 +499,50 @@ async function loadLocalMapSearchJs() {
     async function setBookmarkList() {
         if (bookmarkArray && bookmarkArray.length) {
             bookmarkArray.forEach((value) => {
-                addBookmarkItem(value);
+                addBookmarkToList(value);
             });
         }
     }
-    function addBookmarkItem(value) {
-        const dataObject = JSON.stringify(value);
+
+    function addBookmarkToList(bookmark) {
+        const dataObject = JSON.stringify(bookmark);
+
+        console.log(bookmarkArray);
 
         bookmarkList.innerHTML +=
             `<li class="list-group search-suggestion p-3" data-object='${dataObject}'>
-            <div class="pe-none">${value.name}</div>
-            <div class="text-muted pe-none">${value.formatted_address}</div>
+            <div class="pe-none">${bookmark.name}</div>
+            <div class="text-muted pe-none">${bookmark.formatted_address}</div>
             <button class="btn btn-light border-danger rounded-circle text-danger shadow-sm p-0 ms-auto" type="button" data-action="deletebookmark" data-object='${dataObject}'>
                 <span class="material-symbols-outlined material-symbols-filled m-1 pe-none">delete_forever</span>
             </button>
           </li>`;
     }
 
+    function removeBookmarkFromList(bookmark) {
+        const dataObject = JSON.stringify(bookmark);
+
+        const bkitem = bookmarkArray.find(bk => bk.id == bookmark.id);
+        bookmarkArray.splice(bkitem, 1);
+
+        console.log(bookmarkArray);
+
+        bookmarInList = bookmarkList.querySelector(`li[data-object='${dataObject}']`);
+        bookmarInList.remove();
+    }
+
     async function DeleteBookmarkAndRemoveFromList(event) {
         event.preventDefault();
 
+        const target = event.target;
+
+        const bookmark = JSON.parse(target.dataset.object);
+
         if (target.tagName == 'BUTTON' && target.dataset.action && target.dataset.action == 'deletebookmark') {
-            const data = await deleteBookmark(target);
+            const data = await deleteBookmark(bookmark.id);
             if (data.value && data.value.isSuccess == true) {
                 //changeBookmarkButtonToCreateAction(target);
-                //TODO: remove from list
+                removeBookmarkFromList(bookmark);
             }
         }
     }
@@ -509,18 +552,26 @@ async function loadLocalMapSearchJs() {
 
         const target = event.target;
 
+        const bookmark = JSON.parse(target.dataset.object);
+
         if (target.tagName == 'BUTTON' && target.dataset.action && target.dataset.action == 'createbookmark') {
-            const data = await createBookmark(target);
+            const data = await createBookmark(bookmark);
             if (data.value && data.value.isSuccess == true) {
-                const newBookmarkObject = JSON.parse(data.value.result);
-                target.dataset.object = JSON.stringify(newBookmarkObject);
+
+                const newBookmark = data.value.result;
+
+                target.dataset.object = JSON.stringify(newBookmark);
+
                 changeBookmarkButtonToDeleteAction(target);
+                bookmarkArray.push(newBookmark);
+                addBookmarkToList(newBookmark);
             }
 
         } else if (target.tagName == 'BUTTON' && target.dataset.action && target.dataset.action == 'deletebookmark') {
-            const data = await deleteBookmark(target);
+            const data = await deleteBookmark(bookmark.id);
             if (data.value && data.value.isSuccess == true) {
                 changeBookmarkButtonToCreateAction(target);
+                removeBookmarkFromList(bookmark);
             }
         }
         else {
@@ -528,13 +579,13 @@ async function loadLocalMapSearchJs() {
         }
     }
 
-    async function createBookmark(bookmarkButton) {
+    async function createBookmark(newBookmark) {
 
         console.log("funciono el evento createbookmark en el mapa");
-        console.log(bookmarkButton.dataset.object);
+        console.log(newBookmark);
         console.log("llamando a la api para ejecutar el create");
 
-        const newBookmarkJson = bookmarkButton.dataset.object;
+        const newBookmarkJson = JSON.stringify(newBookmark);
 
         try {
             const results = await fetch(
@@ -557,14 +608,11 @@ async function loadLocalMapSearchJs() {
         }
     }
 
-    async function deleteBookmark(bookmarkButton) {
-        const valueObject = JSON.parse(bookmarkButton.dataset.object);
+    async function deleteBookmark(bookmarkId) {
         console.log("funciono el evento deletebookmark en el mapa");
         
-        console.log(bookmarkButton.dataset.object);
+        console.log(bookmarkId);
         console.log("llamando a la api para ejecutar el create");
-
-        const deleteBookmark = bookmarkButton.dataset.object;
 
         try {
             const results = await fetch(
@@ -576,7 +624,7 @@ async function loadLocalMapSearchJs() {
                         'Content-Type': 'application/json'
                         /*Authorization: fsqAPIToken,*/
                     }),
-                    body: deleteBookmark.Id,
+                    body: bookmarkId,
                 }
             );
             const data = await results.json();
@@ -591,14 +639,14 @@ async function loadLocalMapSearchJs() {
         bookmarkButton.dataset.action = 'createbookmark';
 
         bookmarkSpanIcon = bookmarkButton.querySelector('span.material-symbols-outlined');
-        bookmarkSpanIcon.classList.add('material-symbols-filled');
+        bookmarkSpanIcon.classList.remove('material-symbols-filled');
     }
 
     function changeBookmarkButtonToDeleteAction(bookmarkButton) {
         bookmarkButton.dataset.action = 'deletebookmark';
 
         bookmarkSpanIcon = bookmarkButton.querySelector('span.material-symbols-outlined');
-        bookmarkSpanIcon.classList.remove('material-symbols-filled');
+        bookmarkSpanIcon.classList.add('material-symbols-filled');
     }
 
     function viewDetails(event) {
