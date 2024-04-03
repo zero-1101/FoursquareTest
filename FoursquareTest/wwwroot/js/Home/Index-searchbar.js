@@ -392,10 +392,8 @@ async function loadLocalMapSearchJs() {
                                     <h6 class="card-subtitle mb-2 text-muted">${location.formatted_address}</h6>
                                     <h6 class="d-flex align-items-center fw-bold">${rating ?? ` - `} <span class="material-symbols-outlined text-warning rounded-circle shadow-sm mx-1 fs-4">stars</span></h5>
                                     
-                                    <div class="btn-toolbar justify-content-between" role="toolbar" aria-label="Toolbar with button groups">
-                                        <button class="btn btn-outline-primary shadow-sm py-0 d-flex align-items-center" type="button" data-action='viewdetail' data-fsqid='${fsqId}'>
-                                            Detalles <span class="material-symbols-outlined mx-1 pe-none">visibility</span>
-                                        </button>
+                                    <div class="btn-toolbar justify-content-end" role="toolbar" aria-label="Toolbar with button groups">
+                                        
                                         <button class="btn btn-light border-danger rounded-circle text-danger shadow-sm p-0" type="button" data-action="${actionValue}" data-object='${dataObject}'>
                                             <span class="material-symbols-outlined ${createClass} m-1 pe-none">bookmark</span>
                                         </button>
@@ -507,8 +505,6 @@ async function loadLocalMapSearchJs() {
     function addBookmarkToList(bookmark) {
         const dataObject = JSON.stringify(bookmark);
 
-        console.log(bookmarkArray);
-
         bookmarkList.innerHTML +=
             `<li class="list-group search-suggestion p-3" data-object='${dataObject}'>
             <div class="pe-none">${bookmark.name}</div>
@@ -521,11 +517,6 @@ async function loadLocalMapSearchJs() {
 
     function removeBookmarkFromList(bookmark) {
         const dataObject = JSON.stringify(bookmark);
-
-        const bkitem = bookmarkArray.find(bk => bk.id == bookmark.id);
-        bookmarkArray.splice(bkitem, 1);
-
-        console.log(bookmarkArray);
 
         bookmarInList = bookmarkList.querySelector(`li[data-object='${dataObject}']`);
         bookmarInList.remove();
@@ -552,26 +543,23 @@ async function loadLocalMapSearchJs() {
 
         const target = event.target;
 
-        const bookmark = JSON.parse(target.dataset.object);
+        const currentBookmark = JSON.parse(target.dataset.object);
 
         if (target.tagName == 'BUTTON' && target.dataset.action && target.dataset.action == 'createbookmark') {
-            const data = await createBookmark(bookmark);
+            const data = await createBookmark(currentBookmark);
             if (data.value && data.value.isSuccess == true) {
 
                 const newBookmark = data.value.result;
 
-                target.dataset.object = JSON.stringify(newBookmark);
-
-                changeBookmarkButtonToDeleteAction(target);
-                bookmarkArray.push(newBookmark);
+                changeBookmarkButtonToDeleteAction(newBookmark);
                 addBookmarkToList(newBookmark);
             }
 
         } else if (target.tagName == 'BUTTON' && target.dataset.action && target.dataset.action == 'deletebookmark') {
-            const data = await deleteBookmark(bookmark.id);
+            const data = await deleteBookmark(currentBookmark.id);
             if (data.value && data.value.isSuccess == true) {
-                changeBookmarkButtonToCreateAction(target);
-                removeBookmarkFromList(bookmark);
+                changeBookmarkButtonToCreateAction(currentBookmark);
+                removeBookmarkFromList(currentBookmark);
             }
         }
         else {
@@ -635,18 +623,88 @@ async function loadLocalMapSearchJs() {
         }
     }
 
-    function changeBookmarkButtonToCreateAction(bookmarkButton) {
-        bookmarkButton.dataset.action = 'createbookmark';
+    function changeBookmarkButtonToCreateAction(bookmark) {
 
-        bookmarkSpanIcon = bookmarkButton.querySelector('span.material-symbols-outlined');
-        bookmarkSpanIcon.classList.remove('material-symbols-filled');
+        //delete from list start
+        const bkitem = bookmarkArray.find(bk => bk.id == bookmark.id);
+        bookmarkArray.splice(bkitem, 1);
+
+        console.log(bookmarkArray);
+        //delete from list end
+
+        const currentDataObject = JSON.stringify(bookmark);
+
+        const newDataObject = {
+            latitude: bookmark.latitude,
+            longitude: bookmark.longitude,
+            name: bookmark.name,
+            "formatted_address": bookmark.formatted_address,
+            fsqId: bookmark.fsqId
+        }
+
+        const newDataObjectJson = JSON.stringify(newDataObject);
+
+        const itemInList = searchList.querySelector(`li[data-object='${currentDataObject}']`);
+        if (itemInList) {
+            const buttonInList = itemInList.querySelector(`button[data-object='${currentDataObject}']`);
+            const spanInButtonInList = buttonInList.querySelector('span.material-symbols-outlined');
+
+            itemInList.dataset.object = newDataObjectJson;
+            buttonInList.dataset.action = 'createbookmark';
+            buttonInList.dataset.object = newDataObjectJson;
+            spanInButtonInList.classList.remove('material-symbols-filled');
+        }
+
+        const buttonInMap = mapContainer.querySelector(`button[data-object='${currentDataObject}']`);
+
+        if (buttonInMap) {
+            const spanInButtonInMap = buttonInMap.querySelector('span.material-symbols-outlined');
+
+            buttonInMap.dataset.action = 'createbookmark';
+            buttonInMap.dataset.object = newDataObjectJson;
+            spanInButtonInMap.classList.remove('material-symbols-filled');
+        }
     }
 
-    function changeBookmarkButtonToDeleteAction(bookmarkButton) {
-        bookmarkButton.dataset.action = 'deletebookmark';
+    function changeBookmarkButtonToDeleteAction(bookmark) {
 
-        bookmarkSpanIcon = bookmarkButton.querySelector('span.material-symbols-outlined');
-        bookmarkSpanIcon.classList.add('material-symbols-filled');
+        //add to list start
+        bookmarkArray.push(bookmark);
+        console.log(bookmarkArray);
+        //add to list end
+
+        const newDataObjectJson = JSON.stringify(bookmark);
+
+        const currentDataObject = {
+            latitude: bookmark.latitude,
+            longitude: bookmark.longitude,
+            name: bookmark.name,
+            "formatted_address": bookmark.formatted_address,
+            fsqId: bookmark.fsqId
+        }
+
+        const currentDataObjectJson = JSON.stringify(currentDataObject);
+
+        const itemInList = searchList.querySelector(`li[data-object='${currentDataObjectJson}']`);
+
+        if (itemInList) {
+            const buttonInList = itemInList.querySelector(`button[data-object='${currentDataObjectJson}']`);
+            const spanInButtonInList = buttonInList.querySelector('span.material-symbols-outlined');
+
+            itemInList.dataset.object = newDataObjectJson;
+            buttonInList.dataset.action = 'deletebookmark';
+            buttonInList.dataset.object = newDataObjectJson;
+            spanInButtonInList.classList.add('material-symbols-filled');
+        }
+
+        const buttonInMap = mapContainer.querySelector(`button[data-object='${currentDataObjectJson}']`);
+        if (buttonInMap) {
+            const spanInButtonInMap = buttonInMap.querySelector('span.material-symbols-outlined');
+
+            buttonInMap.dataset.action = 'deletebookmark';
+            buttonInMap.dataset.object = newDataObjectJson;
+            spanInButtonInMap.classList.add('material-symbols-filled');
+        }
     }
 
     function viewDetails(event) {
